@@ -336,7 +336,7 @@ namespace WinFormsApp2
             Console.WriteLine("Open_file");
             OpenFileDialog openFileDialog1 = new OpenFileDialog();
             openFileDialog1.InitialDirectory = @"C:\Users\Administrator\source\repos\WinFormsApp2\WinFormsApp2\Data\";
-            openFileDialog1.Filter = "Object files (*.obj)|*.obj|All files (*.*)|*.*";
+            openFileDialog1.Filter = "Object files (*.xobj)|*.xobj|All files (*.*)|*.*";
             openFileDialog1.Multiselect = false;
 
             if (openFileDialog1.ShowDialog() == DialogResult.OK)
