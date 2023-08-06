@@ -26,7 +26,7 @@ namespace YLScsDrawing.Drawing3d
             get { return center; }
         }
 
-        protected Color lineColor = Color.Black;
+        protected Color lineColor = Color.DarkRed;
         public Color LineColor
         {
             set { lineColor = value; }
@@ -48,7 +48,16 @@ namespace YLScsDrawing.Drawing3d
             Point3d.Offset(copy, pt.X, pt.Y, pt.Z);
             pts = copy;
         }
-        
+
+        public void Translate(Point3d pt)
+        {
+            // transform origin to pt
+            center.Offset(pt.X, pt.Y, pt.Z);
+            Point3d[] copy = Point3d.Copy(pts);
+            Point3d.Offset(copy, pt.X, pt.Y, pt.Z);
+            pts = copy;
+        }
+
         public virtual void Draw(Graphics g,Camera cam)
         {
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 
 namespace YLScsDrawing.Drawing3d
 { 
@@ -103,6 +104,8 @@ namespace YLScsDrawing.Drawing3d
 
         public PointF[] GetProjection(Point3d[] pts)
         {
+
+
             PointF[] pt2ds = new PointF[pts.Length];
 
             // transform to new coordinates system which origin is camera location
@@ -112,13 +115,49 @@ namespace YLScsDrawing.Drawing3d
             // rotate
             quan.Rotate(pts1);
 
+     
             //project
             for (int i = 0; i < pts.Length; i++)
             {
                 if (pts1[i].Z > 0.1)
                 {
-                    pt2ds[i] = new PointF((float)(loc.X + pts1[i].X * _d / pts1[i].Z),
-                        (float)(loc.Y + pts1[i].Y * _d / pts1[i].Z));
+                    pt2ds[i] = new PointF((float)(pts1[i].X * _d / pts1[i].Z),
+                        (float)(pts1[i].Y * _d / pts1[i].Z));
+                }
+                else
+                {
+                    pt2ds[i] = new PointF(float.MaxValue, float.MaxValue);
+                }
+            }
+            return pt2ds;
+
+        }
+
+        public PointF[] GetProjection2(Point3d[] pts ,  out float[] distance )
+        {
+            PointF[] pt2ds = new PointF[pts.Length];
+            distance = new float[pts.Length/3];
+            // transform to new coordinates system which origin is camera location
+            Point3d[] pts1 = Point3d.Copy(pts);
+            Point3d.Offset(pts1, -loc.X, -loc.Y, -loc.Z);
+            // rotate
+            quan.Rotate(pts1);
+
+            for (int i = 0; i < pts1.Length; i += 3)
+            {
+                float value = (float)(pts1[i].Z + pts1[i + 1].Z + pts1[i + 2].Z) / 3.0f;
+                if (value < 0)
+                    distance[i / 3] = float.MaxValue;
+                else
+                    distance[i / 3] = value;
+             }
+            //project
+            for (int i = 0; i < pts.Length; i++)
+            {
+                if (pts1[i].Z > 0.1)
+                {
+                    pt2ds[i] = new PointF((float)(pts1[i].X * _d / pts1[i].Z),
+                        (float)(pts1[i].Y * _d / pts1[i].Z));
                 }
                 else
                 {
@@ -127,5 +166,6 @@ namespace YLScsDrawing.Drawing3d
             }
             return pt2ds;
         }
+
     }
 }

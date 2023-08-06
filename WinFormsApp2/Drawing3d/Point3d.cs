@@ -13,6 +13,14 @@ namespace YLScsDrawing.Drawing3d
             X = x; Y = y; Z = z;
         }
 
+        public Point3d(Point3d a, Point3d b, Point3d c)
+        {
+            double x = (a.X + b.X + c.X) / 3.0;
+            double y = (a.Y + b.Y + c.Y) / 3.0;
+            double z = (a.Z + b.Z + c.Z) / 3.0;
+            X = x; Y = y; Z = z;
+        }
+
         public Point3d(Vector3d v)
         {
             X = v.X; Y = v.Y; Z = v.Z;
