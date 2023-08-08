@@ -127,7 +127,7 @@ namespace WinFormsApp2
         Random random = new Random();
         TriangularMesh mesh;
         List<TriangularMesh> object_ = new List<TriangularMesh>();
-        List<TriangularMesh> reference_ = new List<TriangularMesh> (4);
+        List<Obj> reference_ = new List<Obj> (4);
         List<Vector3d> pos_ = new List<Vector3d>() ;
         List<Vector3d> vel_ = new List<Vector3d>() ;
         List<int> type;
@@ -226,7 +226,7 @@ namespace WinFormsApp2
         }
         public Vector3d RandomStartVector()
         {
-            return new Vector3d(RandomValue(-10.0, 10.0), 5, RandomValue(-3.0, 3.0));
+            return new Vector3d(RandomValue(-30.0, 30.0), 5, RandomValue(-10.0, 15.0));
         }
 
         private void Listhandler()
@@ -237,6 +237,7 @@ namespace WinFormsApp2
                 Point3d translation = new Point3d(vel_[i] * dt);
                 object_[i].Translate(translation);
                 pos_[i] = pos_[i] + vel_[i] * dt;
+                Console.WriteLine(pos_[i].Y);
                 if (pos_[i].Y > 5) { 
                     vel_.RemoveAt(i);
                     pos_.RemoveAt(i);
@@ -244,22 +245,23 @@ namespace WinFormsApp2
                     Console.WriteLine("object " + i.ToString() + " removed");
                 }
             }
-            //if (IsSuccess(20.0f / (object_.Count + 1.0f)))
-            //{
-            //    Console.WriteLine("object # " + object_.Count.ToString() + " created");
-            //    Vector3d Start = RandomStartVector();
-            //    Vector3d End = RandomStartVector();
-            //    double maxHeight = RandomValue(5.0, 10.0);
-            //    double halfTime = Math.Sqrt((5.0 + maxHeight) * 0.204);
-            //    double upVel = -9.8 * halfTime;
-            //    Vector3d StartVel = (End - Start) / (halfTime * 2);
-            //    StartVel.Y = upVel;
-            //    int type = RandomValue(0, 3);
-            //    object_.Add(reference_[type]);
-            //    object_[object_.Count - 1].Translate(new Point3d(Start));
-            //    pos_.Add(Start);
-            //    vel_.Add(StartVel);
-            //}
+            if (IsSuccess(20.0f / (object_.Count + 1.0f)))
+            {
+                Console.WriteLine("object # " + object_.Count.ToString() + " created");
+                Vector3d Start = RandomStartVector();
+                Vector3d End = RandomStartVector();
+                double maxHeight = RandomValue(5.0, 20.0);
+                double halfTime = Math.Sqrt((5.0 + maxHeight) * 0.204);
+                double upVel = -9.8 * halfTime;
+                Vector3d StartVel = (End - Start) / (halfTime * 2);
+                StartVel.Y = upVel;
+                int type = RandomValue(0, 3);
+                TriangularMesh new_mesh = new TriangularMesh(reference_[type].vertices, reference_[type].colors);
+                object_.Add(new_mesh);
+                object_[object_.Count - 1].Translate(new Point3d(Start));
+                pos_.Add(Start);
+                vel_.Add(StartVel);
+            }
         }
 
         private void Timer_Tick(object sender, EventArgs e)
@@ -290,7 +292,7 @@ namespace WinFormsApp2
                     object_[i].RotateAt(object_[i].Center, offset);
                     object_[i].ProjectPoints(cam);
                     object_[i].Draw(g, cam);
-                    string centerValue = string.Format("x: {0:0.00}, y: {1:0.00}, z: {2:0.00}", object_[i].Center.X, object_[i].Center.Y, object_[i].Center.Z);
+                    string centerValue = string.Format("x: {0:0.00}, y: {1:0.00}, z: {2:0.00}", pos_[i].X, pos_[i].Y, pos_[i].Z);
                     Font fontd = new Font("Arial", 10);
                     Brush brushd = Brushes.Black;
                     SizeF sized = g.MeasureString(centerValue, fontd);
@@ -478,8 +480,7 @@ namespace WinFormsApp2
             {
                 Obj a = new Obj(reference[i]);
                 a.getdata();
-                reference_.Add(new TriangularMesh(a.vertices,a.colors));
-                reference_[i].Center = new Point3d(0, 0, 0);
+                reference_.Add(a);
             }
         }
         private void button1_Click(object sender, EventArgs e)
@@ -493,8 +494,9 @@ namespace WinFormsApp2
             double upVel = -9.8 * halfTime;
             Vector3d StartVel = (End - Start) / (halfTime * 2);
             StartVel.Y = upVel;
-            int type = RandomValue(0, 3);
-            object_.Add(reference_[type]);
+            int type = 0;
+            TriangularMesh new_mesh = new TriangularMesh(reference_[type].vertices, reference_[type].colors);
+            object_.Add(new_mesh);
             object_[object_.Count - 1].Translate(new Point3d(Start));
             pos_.Add(Start);
             vel_.Add(StartVel);
@@ -502,37 +504,37 @@ namespace WinFormsApp2
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
-            string selectedItem = comboBox1.SelectedItem.ToString();
-            object_selected = true;
-            cam = new Camera();
-            cam.Location = new Point3d(-0, -0, -30);
-            switch (selectedItem)
-            {
-                case "Apple":
-                    mesh = reference_[0];
-                    mesh.Center = reference_[0].Center;
-                    break;
+            //string selectedItem = comboBox1.SelectedItem.ToString();
+            //object_selected = true;
+            //cam = new Camera();
+            //cam.Location = new Point3d(-0, -0, -30);
+            //switch (selectedItem)
+            //{
+            //    case "Apple":
+            //        mesh = reference_[0];
+            //        mesh.Center = reference_[0].Center;
+            //        break;
 
-                case "Donnut":
-                    mesh = reference_[1];
-                    mesh.Center = reference_[1].Center;
-                    break;
+            //    case "Donnut":
+            //        mesh = reference_[1];
+            //        mesh.Center = reference_[1].Center;
+            //        break;
 
-                case "Bomb":
-                    mesh = reference_[2];
-                    mesh.Center = reference_[2].Center;
-                    break;
+            //    case "Bomb":
+            //        mesh = reference_[2];
+            //        mesh.Center = reference_[2].Center;
+            //        break;
 
-                case "Clock":
-                    mesh = reference_[3];
-                    mesh.Center = reference_[3].Center;
-                    break;
+            //    case "Clock":
+            //        mesh = reference_[3];
+            //        mesh.Center = reference_[3].Center;
+            //        break;
 
-            default:
-                    // Default logic when no specific item is selected
-                    break;
-            }
-            object_selected = true;
+            //default:
+            //        // Default logic when no specific item is selected
+            //        break;
+            //}
+            //object_selected = true;
         }
 
         private void InitializeComponent()
