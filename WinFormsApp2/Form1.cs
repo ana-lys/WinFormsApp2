@@ -5,6 +5,7 @@ namespace WinFormsApp2
         public Form1()
         {
             InitializeComponent();
+            InitializeMqttClient();
         }
 
 

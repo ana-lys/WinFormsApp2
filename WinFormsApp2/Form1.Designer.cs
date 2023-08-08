@@ -5,6 +5,11 @@ using MathNet.Numerics.LinearAlgebra;
 using Microsoft.VisualBasic.ApplicationServices;
 using System.Windows.Forms;
 using System.Security.Cryptography.Xml;
+using MQTTnet;
+using MQTTnet.Client;
+using MQTTnet.Server;
+using MQTTnet.Client.Options;
+using System.Text;
 
 namespace WinFormsApp2
 {
@@ -109,6 +114,8 @@ namespace WinFormsApp2
         }
 
     }
+
+   
     partial class Form1
     {
         /// <summary>
@@ -119,14 +126,19 @@ namespace WinFormsApp2
         Brush blueBrush = Brushes.Black;
         Random random = new Random();
         TriangularMesh mesh;
-        List<TriangularMesh> object_;
+        List<TriangularMesh> object_ = new List<TriangularMesh>();
         List<TriangularMesh> reference_ = new List<TriangularMesh> (4);
-        List<Vector3d> pos_, vel_;
+        List<Vector3d> pos_ = new List<Vector3d>() ;
+        List<Vector3d> vel_ = new List<Vector3d>() ;
         List<int> type;
-        Camera cam;
+        double dt = 0.02;
+        Vector3d gravity = new Vector3d(0, 9.800, 0);
+        Camera cam = new Camera();
         private System.Windows.Forms.Timer timer;
         Quaternion orientation = new Quaternion(1.0, 0.0, 0.0, 0.0);
         SerialPort serialPort1 = new SerialPort("COM10", 115200);
+        Quaternion crosshair = new Quaternion(1.0, 0.0, 0.0, 0.0);
+        private IMqttClient _mqttClient;
         //SerialPort serialPort2 = new SerialPort("COM18", 115200);
         bool serial_opened = false;
         bool object_selected = false;
@@ -143,20 +155,122 @@ namespace WinFormsApp2
             base.Dispose(disposing);
         }
 
+        private async void InitializeMqttClient()
+        {
+            var factory = new MqttFactory();
+            _mqttClient = factory.CreateMqttClient();
+
+            var options = new MqttClientOptionsBuilder()
+                .WithTcpServer("localhost")  // Mosquitto broker address
+                .WithClientId(Guid.NewGuid().ToString())
+                .Build();
+
+            _mqttClient.UseConnectedHandler(async e =>
+            {
+                await _mqttClient.SubscribeAsync(new MqttTopicFilterBuilder().WithTopic("quaternion").Build());
+                // Subscribe to the "quaternion" topic
+            });
+
+            _mqttClient.UseApplicationMessageReceivedHandler(e =>
+            {
+                var message = Encoding.UTF8.GetString(e.ApplicationMessage.Payload);
+                message = message.Trim();
+                var prams = message.Split(',');
+
+                try
+                {
+                    if (prams.Length == 4)
+                    {
+                        crosshair.W = -float.Parse(prams[0]);
+                        crosshair.X = float.Parse(prams[1]);
+                        crosshair.Y = - float.Parse(prams[3]);
+                        crosshair.Z = float.Parse(prams[2]);
+                        Console.WriteLine(message);
+
+                    }
+                }
+                catch
+                {
+                    Console.WriteLine(message);
+                }
+
+            });
+
+            await _mqttClient.ConnectAsync(options);
+        }
         private void Control1_MouseClick(Object sender, MouseEventArgs e)
         {
             Graphics g = this.CreateGraphics();
             Console.WriteLine(e.X.ToString() + " " + e.Y.ToString());
         }
-        private void Timer_Tick(object sender, EventArgs e)
-        {   if (object_selected == false)
-            {
-                Quaternion offset = new Quaternion(0.7, 0.000, 0.00, 0.7);
-            }
-            if (object_selected == true)
-            {
-                this.DoubleBuffered = true;
 
+        public bool IsSuccess(float successPercentage)
+        {
+            // Generate a random number between 0 and 1
+            float randomValue = (float)random.NextDouble();
+
+            // Check if the random value is less than the success percentage
+            return randomValue < successPercentage / 100.0f;
+        }
+
+        public int RandomValue(int minValue, int maxValue)
+        {
+            // Generate a random integer between the min and max values (inclusive)
+            return random.Next(minValue, maxValue + 1);
+        }
+
+        public double RandomValue(double minValue, double maxValue)
+        {
+            // Generate a random double value between the min and max values
+            return random.NextDouble() * (maxValue - minValue) + minValue;
+        }
+        public Vector3d RandomStartVector()
+        {
+            return new Vector3d(RandomValue(-10.0, 10.0), 5, RandomValue(-3.0, 3.0));
+        }
+
+        private void Listhandler()
+        {
+            for( int i = 0; i < object_.Count; i++ )
+            {
+                vel_[i] = vel_[i] + gravity * dt;
+                Point3d translation = new Point3d(vel_[i] * dt);
+                object_[i].Translate(translation);
+                pos_[i] = pos_[i] + vel_[i] * dt;
+                if (pos_[i].Y > 5) { 
+                    vel_.RemoveAt(i);
+                    pos_.RemoveAt(i);
+                    object_.RemoveAt(i);
+                    Console.WriteLine("object " + i.ToString() + " removed");
+                }
+            }
+            //if (IsSuccess(20.0f / (object_.Count + 1.0f)))
+            //{
+            //    Console.WriteLine("object # " + object_.Count.ToString() + " created");
+            //    Vector3d Start = RandomStartVector();
+            //    Vector3d End = RandomStartVector();
+            //    double maxHeight = RandomValue(5.0, 10.0);
+            //    double halfTime = Math.Sqrt((5.0 + maxHeight) * 0.204);
+            //    double upVel = -9.8 * halfTime;
+            //    Vector3d StartVel = (End - Start) / (halfTime * 2);
+            //    StartVel.Y = upVel;
+            //    int type = RandomValue(0, 3);
+            //    object_.Add(reference_[type]);
+            //    object_[object_.Count - 1].Translate(new Point3d(Start));
+            //    pos_.Add(Start);
+            //    vel_.Add(StartVel);
+            //}
+        }
+
+        private void Timer_Tick(object sender, EventArgs e)
+        {  // if (object_selected == false)
+        //    {
+        //        Quaternion offset = new Quaternion(0.7, 0.000, 0.00, 0.7);
+        //    }
+            //if (object_selected == true)
+            //{
+                this.DoubleBuffered = true;
+                Listhandler();
                 // Create an off-screen bitmap to draw the graphics
                 Bitmap bitmap = new Bitmap(this.ClientSize.Width, this.ClientSize.Height);
                 Graphics g = Graphics.FromImage(bitmap);
@@ -165,24 +279,25 @@ namespace WinFormsApp2
                 g.Clear(Color.White);
                 Quaternion offset = new Quaternion(0.6, 0.003, 0.00452, -0.0032);
                 offset.Normalise();
-                // Draw the graphics
-                orientation.Multiply(offset);
-                orientation.Normalise();
-                //Console.WriteLine(orientation.ToStringQ());
-                Point3d trans = new Point3d(0.00, 0, 0.1);
-                mesh.RotateAt(mesh.Center, offset);
-                //mesh.Translate(trans);
-                mesh.ProjectPoints(cam);
-                mesh.Draw(g, cam);
+                cam.Quaternion = crosshair;
 
-                // Display quaternion value in upper right corner
-                string quaternionValue = string.Format("w: {0:0.00}, x: {1:0.00}, y: {2:0.00}, z: {3:0.00}", orientation.W, orientation.X, orientation.Y, orientation.Z);
-                Font font = new Font("Arial", 10);
-                Brush brush = Brushes.Black;
-                SizeF size = g.MeasureString(quaternionValue, font);
-                float x = this.ClientSize.Width - size.Width - 10;
-                float y = 10;
-                g.DrawString(quaternionValue, font, brush, x, y);
+                //mesh.RotateAt(mesh.Center, offset);
+                //mesh.ProjectPoints(cam);
+                //mesh.Draw(g, cam);
+
+                for (int i = 0; i < object_.Count; i++)
+                {
+                    object_[i].RotateAt(object_[i].Center, offset);
+                    object_[i].ProjectPoints(cam);
+                    object_[i].Draw(g, cam);
+                    string centerValue = string.Format("x: {0:0.00}, y: {1:0.00}, z: {2:0.00}", object_[i].Center.X, object_[i].Center.Y, object_[i].Center.Z);
+                    Font fontd = new Font("Arial", 10);
+                    Brush brushd = Brushes.Black;
+                    SizeF sized = g.MeasureString(centerValue, fontd);
+                    float xd = this.ClientSize.Width - sized.Width - 10;
+                    float yd = 30+ 20 * i;
+                    g.DrawString(centerValue , fontd, brushd, xd, yd);
+                }
 
                 // Draw the bitmap to the screen
                 Graphics formGraphics = this.CreateGraphics();
@@ -243,16 +358,7 @@ namespace WinFormsApp2
                         {
                             //Console.WriteLine("catch");
                         }
-                    }
-                    //g.DrawString(move, font, brush, x, 50);
-
-                    //string data2 = serialPort2.ReadLine();
-                    //
-                    //Console.WriteLine("1: " + integers[0]);
-                    //Console.WriteLine("2: " + integers[1]);
-                    //Console.WriteLine("3: " + integers[2]);
-                    //Console.WriteLine("4: " + integers[3]);
-                    //Console.WriteLine(lastLine + " "+ values.Length);
+                    //}
                 }
 
             }
@@ -374,50 +480,24 @@ namespace WinFormsApp2
                 a.getdata();
                 reference_.Add(new TriangularMesh(a.vertices,a.colors));
                 reference_[i].Center = new Point3d(0, 0, 0);
-                Point3d  t = new Point3d((i-1.5) * 5, 0, 0); 
-                reference_[i].Translate(t);
             }
         }
         private void button1_Click(object sender, EventArgs e)
         {
-            ConvertObjFaceFormat(@"C:\Users\Administrator\source\repos\WinFormsApp2\WinFormsApp2\Data\donnutc.xobj");
-            //Console.WriteLine("Open_file");
-            //OpenFileDialog openFileDialog1 = new OpenFileDialog();
-            //openFileDialog1.InitialDirectory = @"C:\Users\Administrator\source\repos\WinFormsApp2\WinFormsApp2\Data\";
-            //openFileDialog1.Filter = "Object files (*.xobj)|*.xobj|All files (*.*)|*.*";
-            //openFileDialog1.Multiselect = false;
-
-            //if (openFileDialog1.ShowDialog() == DialogResult.OK)
-            //{
-            //    // The user selected a file - do something with it here
-            //    string filename = openFileDialog1.FileName;
-            //    Console.WriteLine("Selected file: " + filename);
-            //    Obj a = new Obj(filename);
-            //    cam = new Camera();
-            //    cam.Location = new Point3d(-0, -0, -6);
-            //    a.getdata();
-            //    mesh = new TriangularMesh(a.vertices);
-            //    mesh.Center = new Point3d(0, 0, 0);
-            //}
-            //object_selected = true;
-            //try
-            //{
-            //    serialPort1.Open();
-            //}
-            //catch (IOException ex)
-            //{
-            //    MessageBox.Show("Error opening serial port1: " + ex.Message);
-            //}
-            ////try
-            ////{
-            ////    serialPort2.Open();
-            ////}
-            ////catch (IOException ex)
-            ////{
-            ////    MessageBox.Show("Error opening serial port2: " + ex.Message);
-            ////}
-            //serial_opened = true;
-
+            //ConvertObjFaceFormat(@"C:\Users\Administrator\source\repos\WinFormsApp2\WinFormsApp2\Data\donnutc.xobj");
+            Console.WriteLine("object # " + object_.Count.ToString() + " created");
+            Vector3d Start = RandomStartVector();
+            Vector3d End = RandomStartVector();
+            double maxHeight = RandomValue(5.0, 10.0);
+            double halfTime = Math.Sqrt((5.0 + maxHeight) * 0.204);
+            double upVel = -9.8 * halfTime;
+            Vector3d StartVel = (End - Start) / (halfTime * 2);
+            StartVel.Y = upVel;
+            int type = RandomValue(0, 3);
+            object_.Add(reference_[type]);
+            object_[object_.Count - 1].Translate(new Point3d(Start));
+            pos_.Add(Start);
+            vel_.Add(StartVel);
         }
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
@@ -425,7 +505,7 @@ namespace WinFormsApp2
             string selectedItem = comboBox1.SelectedItem.ToString();
             object_selected = true;
             cam = new Camera();
-            cam.Location = new Point3d(-0, -0, -10);
+            cam.Location = new Point3d(-0, -0, -30);
             switch (selectedItem)
             {
                 case "Apple":

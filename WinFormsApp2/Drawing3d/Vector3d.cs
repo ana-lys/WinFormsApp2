@@ -49,6 +49,19 @@ namespace YLScsDrawing.Drawing3d
             return new Vector3d(v1.X + v2.X, v1.Y + v2.Y, v1.Z + v2.Z);
         }
 
+        public static Vector3d operator *(Vector3d v1,double d)
+        {
+            return new Vector3d(v1.X * d, v1.Y * d, v1.Z * d);
+        }
+
+        public static Vector3d operator /(Vector3d v1, double d)
+        {
+            if(d != 0)
+            return new Vector3d(v1.X / d, v1.Y / d, v1.Z / d);
+            else
+            return new Vector3d(double.NaN, double.NaN, double.NaN);
+        }
+
         public static Vector3d operator -(Vector3d v1, Vector3d v2)
         {
             return new Vector3d(v1.X - v2.X, v1.Y - v2.Y, v1.Z - v2.Z);

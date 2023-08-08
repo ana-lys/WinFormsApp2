@@ -97,7 +97,7 @@ public class TriangularMesh : Shape3d
                 //Console.WriteLine(clr);
                 g.FillPolygon(brush, face);
 
-                g.DrawPolygon(new Pen(lineColor,0.1f), face);
+                //g.DrawPolygon(new Pen(lineColor,0.1f), face);
             }
             else
             {

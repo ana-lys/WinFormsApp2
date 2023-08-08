@@ -9,7 +9,7 @@ namespace YLScsDrawing.Drawing3d
     public class Camera
     {
         public 
-        Point3d loc = new Point3d(0, 0, 0);
+        Point3d loc = new Point3d(0, 0, -30);
         double _d = 110.0;
         Quaternion quan = new Quaternion(1, 0, 0, 0);
 
@@ -143,6 +143,8 @@ namespace YLScsDrawing.Drawing3d
             // rotate
             quan.Rotate(pts1);
 
+            float halfFovTan = (float)Math.Tan( 1 / 2.0);
+
             for (int i = 0; i < pts1.Length; i += 3)
             {
                 float value = (float)(pts1[i].Z + pts1[i + 1].Z + pts1[i + 2].Z) / 3.0f;
@@ -156,8 +158,8 @@ namespace YLScsDrawing.Drawing3d
             {
                 if (pts1[i].Z > 0.1)
                 {
-                    pt2ds[i] = new PointF((float)(pts1[i].X * _d / pts1[i].Z),
-                        (float)(pts1[i].Y * _d / pts1[i].Z));
+                    pt2ds[i] = new PointF((float)(pts1[i].X * _d / pts1[i].Z / halfFovTan),
+                        (float)(pts1[i].Y * _d / pts1[i].Z / halfFovTan));
                 }
                 else
                 {

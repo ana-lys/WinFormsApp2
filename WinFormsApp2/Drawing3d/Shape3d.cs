@@ -26,7 +26,7 @@ namespace YLScsDrawing.Drawing3d
             get { return center; }
         }
 
-        protected Color lineColor = Color.DarkRed;
+        protected Color lineColor = Color.Gray;
         public Color LineColor
         {
             set { lineColor = value; }
